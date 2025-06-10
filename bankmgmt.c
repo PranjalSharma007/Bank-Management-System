@@ -5,6 +5,56 @@
 #include <termios.h>
 #include <unistd.h>
 
+// Structures
+struct pass {
+    char username[50];
+    char date[2], month[2], year[4];
+    char pnumber[15];
+    char adharnum[20];
+    char fname[20];
+    char lname[20];
+    char fathname[20];
+    char mothname[20];
+    char address[50];
+    char typeaccount[20];
+    char balance[10];
+};
+
+struct money {
+    char usernameto[50];
+    char userpersonfrom[50];
+    long int money1;
+};
+
+struct userpass {
+    char password[50];
+};
+
+// Doubly Linked List for Transactions
+struct TransactionNode {
+    struct money data;
+    struct TransactionNode* prev;
+    struct TransactionNode* next;
+};
+
+struct TransactionNode* head = NULL;
+
+// Function declarations
+void clear_screen();
+int portable_getch();
+void transfermoney(void);
+void display(char*);
+void checkbalance(char*);
+void login(void);
+void signin(void);
+void accountcreated(void);
+void account(void);
+void logout(void);
+int isValidNumeric(char num[]);
+int isValidAdhar(char num[]);
+void loadTransactions();
+
+// Utilities
 void clear_screen() {
     printf("\033[2J\033[H");
 }
@@ -21,61 +71,41 @@ int portable_getch() {
     return ch;
 }
 
-void transfermoney(void);
-void display(char *);
-void checkbalance(char *);
-void login(void);
-void signin(void);
-void accountcreated(void);
-void account(void);
-void logout(void);
-int isValidNumeric(char num[]);
-int isValidAdhar(char num[]);
+// Load transactions from file into doubly linked list
+void loadTransactions() {
+    FILE* fm = fopen("mon.txt", "rb");
+    struct money m1;
+    if (!fm) return;
 
-struct pass
-{
-    char username[50];
-    char date[2], month[2], year[4];
-    char pnumber[15];
-    char adharnum[20];
-    char fname[20];
-    char lname[20];
-    char fathname[20];
-    char mothname[20];
-    char address[50];
-    char typeaccount[20];
-    char balance[10];
-};
+    while (fread(&m1, sizeof(struct money), 1, fm)) {
+        struct TransactionNode* newNode = (struct TransactionNode*)malloc(sizeof(struct TransactionNode));
+        newNode->data = m1;
+        newNode->prev = newNode->next = NULL;
 
-struct money
-{
-    char usernameto[50];
-    char userpersonfrom[50];
-    long int money1;
-};
+        if (head == NULL) {
+            head = newNode;
+        } else {
+            struct TransactionNode* temp = head;
+            while (temp->next != NULL) temp = temp->next;
+            temp->next = newNode;
+            newNode->prev = temp;
+        }
+    }
+    fclose(fm);
+}
 
-struct userpass
-{
-    char password[50];
-};
-
-int len = 0;
-
-int main()
-{
-    int i, a, b, choice;
-    int passwordlength;
-
+// Main Menu
+int main() {
+    int choice;
+    clear_screen();
     printf("WELCOME TO BANK ACCOUNT SYSTEM\n\n");
-    printf("************\n");
-    printf("1.... CREATE A BANK ACCOUNT\n");
-    printf("2.... ALREADY A USER? SIGN IN\n");
-    printf("3.... EXIT\n\n");
-    printf("\n\nENTER YOUR CHOICE..\n");
+    printf("1. CREATE A BANK ACCOUNT\n");
+    printf("2. SIGN IN\n");
+    printf("3. EXIT\n\n");
+    printf("ENTER YOUR CHOICE: ");
     scanf("%d", &choice);
 
-    switch (choice)
-    {
+    switch (choice) {
     case 1:
         clear_screen();
         account();
@@ -85,404 +115,186 @@ int main()
         break;
     case 3:
         exit(0);
-        break;
     default:
-        printf("Invalid Choice Entered!\n");
-        main();
+        printf("Invalid choice!\n");
         portable_getch();
+        main();
     }
+    return 0;
 }
 
-void account(void)
-{
-    char password[20];
-    int passwordlength, i, seek = 0;
-    char ch;
-    FILE *fp, *fu;
+// Account Creation
+void account() {
+    char password[50], ch;
+    FILE* fp = fopen("username.txt", "ab");
     struct pass u1;
-    struct userpass p1;
-    struct userpass u2;
+    int i;
 
-    fp = fopen("username.txt", "ab");
     clear_screen();
-    printf("\n\n!!!!!CREATE ACCOUNT!!!!!\n");
+    printf("CREATE ACCOUNT\n");
 
-    printf("\n\nFIRST NAME..\n");
+    printf("FIRST NAME: ");
     scanf("%s", u1.fname);
-
-    printf("\n\n\nLAST NAME..\n");
+    printf("LAST NAME: ");
     scanf("%s", u1.lname);
-
-    printf("\n\nFATHER's NAME..\n");
+    printf("FATHER'S NAME: ");
     scanf("%s", u1.fathname);
-
-    printf("\n\nMOTHER's NAME..\n");
+    printf("MOTHER'S NAME: ");
     scanf("%s", u1.mothname);
-
-    printf("\n\nADDRESS..\n");
+    printf("ADDRESS: ");
     scanf("%s", u1.address);
-
-    printf("\n\nACCOUNT TYPE\n");
+    printf("ACCOUNT TYPE: ");
     scanf("%s", u1.typeaccount);
-
-    printf("\n\nDATE OF BIRTH..\n");
-    printf("DATE-");
-    scanf("%s", u1.date);
-
-    printf("MONTH-");
-    scanf("%s", u1.month);
-
-    printf("YEAR-");
-    scanf("%s", u1.year);
-
-    printf("\n\nADHAR NUMBER\n");
+    printf("DATE OF BIRTH (DD MM YYYY): ");
+    scanf("%s %s %s", u1.date, u1.month, u1.year);
+    printf("AADHAR NUMBER: ");
     scanf("%s", u1.adharnum);
     isValidAdhar(u1.adharnum);
-
-    printf("\n\nPHONE NUMBER\n");
+    printf("PHONE NUMBER: ");
     scanf("%s", u1.pnumber);
-
     isValidNumeric(u1.pnumber);
-
-    printf("\n\n USERNAME 50 CHARACTERS MAX!!\n");
-    printf("\n\n PASSWORD 50 CHARACTERS MAX!!\n");
-
-    printf("\n\nUSERNAME..\n");
+    printf("USERNAME: ");
     scanf("%s", u1.username);
 
-    printf("\n\nPASSWORD..\n");
-    for (i = 0; i < 50; i++)
-    {
+    printf("PASSWORD: ");
+    for (i = 0; i < 50; i++) {
         ch = portable_getch();
-        if (ch != 13)
-        {
-            password[i] = ch;
-            ch = '*';
-            printf("%c", ch);
-        }
-        else
-            break;
+        if (ch == 13) break;
+        password[i] = ch;
+        printf("*");
     }
+    password[i] = '\0';
 
-    printf("Enter the Deposit Amount(min:1000/-)");
+    printf("\nDEPOSIT AMOUNT (min ₹1000): ");
     scanf("%s", u1.balance);
 
     fwrite(&u1, sizeof(u1), 1, fp);
     fclose(fp);
+
     accountcreated();
 }
 
-void accountcreated(void)
-{
-    int i;
-    char ch;
+void accountcreated() {
     clear_screen();
-    printf("PLEASE WAIT....\n\nYOUR DATA IS PROCESSING....\n");
-    for (i = 0; i < 200000000; i++)
-    {
-        i++;
-        i--;
-    }
-    printf("ACCOUNT CREATED SUCCESSFULLY....\nPress enter to login\n");
+    printf("PLEASE WAIT... CREATING ACCOUNT...\n");
+    for (int i = 0; i < 200000000; i++) { i++; i--; }
+    printf("ACCOUNT CREATED SUCCESSFULLY!\nPress Enter to login...\n");
     portable_getch();
     login();
 }
 
-void login(void)
-{
+// Login
+void login() {
     clear_screen();
-    char username[50];
-    char password[50];
-    int i, j, k;
-    char ch;
-    FILE *fp, *fu;
+    char username[50], password[50], ch;
+    FILE* fp = fopen("username.txt", "rb");
     struct pass u1;
-    struct userpass u2;
+    int found = 0, i;
 
-    fp = fopen("username.txt", "rb");
-
-    if (fp == NULL)
-    {
-        printf("ERROR IN OPENING FILE");
+    if (!fp) {
+        printf("Error opening file.\n");
+        return;
     }
-    printf(" ACCOUNT LOGIN \n");
-    printf("********************"
-           "************\n");
-    printf("==== LOG IN ====\n");
 
-    printf("USERNAME..\n");
+    printf("LOGIN\nUSERNAME: ");
     scanf("%s", username);
-    printf("PASSWORD..\n");
-
-    for (i = 0; i < 50; i++)
-    {
+    printf("PASSWORD: ");
+    for (i = 0; i < 50; i++) {
         ch = portable_getch();
-        if (ch != 13)
-        {
-            password[i] = ch;
-            ch = '*';
-            printf("%c", ch);
-        }
-        else
-            break;
-    }
-
-    while (fread(&u1, sizeof(u1), 1, fp))
-    {
-        if (strcmp(username, u1.username) == 0)
-        {
-            signin();
-            display(username);
-        }
-    }
-    fclose(fp);
-}
-
-void signin(void)
-{
-    int i;
-    FILE *fp;
-    struct pass u1;
-    clear_screen();
-    printf("Fetching account details.....\n");
-    for (i = 0; i < 20000; i++)
-    {
-        i++;
-        i--;
-    }
-    printf("LOGIN SUCCESSFUL....\nPress enter to continue\n");
-    portable_getch();
-}
-
-void display(char username1[])
-{
-    clear_screen();
-    FILE *fp;
-    int choice, i;
-    fp = fopen("username.txt", "rb");
-    struct pass u1;
-
-    if (fp == NULL)
-    {
-        printf("error in opening file");
-    }
-
-    while (fread(&u1, sizeof(u1), 1, fp))
-    {
-        if (strcmp(username1, u1.username) == 0)
-        {
-            printf("WELCOME, %s %s\n", u1.fname, u1.lname);
-            printf("..........................\n");
-            printf("=== YOUR ACCOUNT INFO ===\n");
-            printf("*********\n");
-            printf("NAME..%s %s\n", u1.fname, u1.lname);
-            printf("FATHER's NAME..%s %s\n", u1.fathname, u1.lname);
-            printf("MOTHER's NAME..%s\n", u1.mothname);
-            printf("ADHAR CARD NUMBER..%s\n", u1.adharnum);
-            printf("MOBILE NUMBER..%s\n", u1.pnumber);
-    printf("DATE OF BIRTH.. %s-%s-%s\n", u1.date, u1.month, u1.year);
-            printf("ADDRESS..%s\n", u1.address);
-            printf("ACCOUNT TYPE..%s\n", u1.typeaccount);
-        }
-    }
-    fclose(fp);
-    printf(" HOME \n");
-    printf("**\n");
-    printf(" 1....CHECK BALANCE\n");
-    printf(" 2....TRANSFER MONEY\n");
-    printf(" 3....LOG OUT\n\n");
-    printf(" 4....EXIT\n\n");
-    printf(" ENTER YOUR CHOICES..\n");
-    scanf("%d", &choice);
-
-    switch (choice)
-    {
-    case 1:
-        checkbalance(username1);
-        break;
-    case 2:
-        transfermoney();
-        break;
-    case 3:
-        logout();
-        login();
-        break;
-    case 4:
-        exit(0);
-        break;
-    }
-}
-
-void transfermoney(void)
-{
-    int i, j;
-    FILE *fm, *fp;
-    struct pass u1;
-    struct money m1;
-    char usernamet[20];
-    char usernamep[20];
-    clear_screen();
-    fp = fopen("username.txt", "rb");
-    fm = fopen("mon.txt", "ab");
-
-    printf("---- TRANSFER MONEY ----");
-    printf("========================");
-
-    printf("FROM (your username).. ");
-    scanf("%s", usernamet);
-
-    printf(" TO (username of person)..");
-    scanf("%s", usernamep);
-
-    while (fread(&u1, sizeof(u1), 1, fp))
-    {
-        if (strcmp(usernamep, u1.username) == 0)
-        {
-            strcpy(m1.usernameto, u1.username);
-            strcpy(m1.userpersonfrom, usernamet);
-        }
-    }
-
-    printf("ENTER THE AMOUNT TO BE TRANSFERRED..");
-    scanf("%ld", &m1.money1);
-
-    fwrite(&m1, sizeof(m1), 1, fm);
-
-    printf(
-        "--------------------------------------------------"
-        "--------------------------------------------");
-
-    printf(
-        "--------------------------------------------------"
-        "--------------------------------------------");
-
-    printf("Transferring Amount, Please Wait..");
-
-    for (i = 0; i < 70; i++)
-    {
-        for (j = 0; j < 1200000; j++)
-        {
-            j++;
-            j--;
-        }
+        if (ch == 13) break;
+        password[i] = ch;
         printf("*");
     }
+    password[i] = '\0';
 
-    printf("AMOUNT SUCCESSFULLY TRANSFERRED....");
-    portable_getch();
-    fclose(fp);
-    fclose(fm);
-    display(usernamet);
-}
-
-void checkbalance(char username2[])
-{
-    clear_screen();
-    FILE *fm;
-    struct money m1;
-    char ch;
-    int i = 1, summoney = 0;
-    fm = fopen("mon.txt", "rb");
-
-    int k = 5, l = 10;
-    int m = 30, n = 10;
-    int u = 60, v = 10;
-
-    printf("==== BALANCE DASHBOARD ====");
-    printf("*********");
-    printf("S no.");
-    printf("TRANSACTION ID");
-    printf("AMT");
-
-    while (fread(&m1, sizeof(m1), 1, fm))
-    {
-        if (strcmp(username2, m1.usernameto) == 0)
-        {
-            printf("%d", i);
-            i++;
-            printf("%s", m1.userpersonfrom);
-
-    printf("%ld", m1.money1);
-            summoney = summoney + m1.money1;
+    while (fread(&u1, sizeof(u1), 1, fp)) {
+        if (strcmp(username, u1.username) == 0) {
+            found = 1;
+            break;
         }
     }
+    fclose(fp);
 
-    printf("TOTAL AMT");
-    printf("%d", summoney);
+    if (found) {
+        signin();
+        loadTransactions();  // Load linked list from file
+        display(username);
+    } else {
+        printf("\nInvalid credentials.\n");
+        portable_getch();
+        login();
+    }
+}
+
+void signin() {
+    clear_screen();
+    printf("Fetching account details...\n");
+    for (int i = 0; i < 20000; i++) { i++; i--; }
+    printf("LOGIN SUCCESSFUL!\nPress Enter to continue...\n");
     portable_getch();
-    fclose(fm);
+}
+
+// Display dashboard
+void display(char username1[]) {
+    clear_screen();
+    FILE* fp = fopen("username.txt", "rb");
+    struct pass u1;
+    int choice;
+
+    if (!fp) {
+        printf("Error opening user file.\n");
+        return;
+    }
+
+    while (fread(&u1, sizeof(u1), 1, fp)) {
+        if (strcmp(username1, u1.username) == 0) {
+            printf("Welcome, %s %s\n", u1.fname, u1.lname);
+            printf("Account Type: %s\n", u1.typeaccount);
+            printf("Phone: %s\n", u1.pnumber);
+            printf("DOB: %s-%s-%s\n", u1.date, u1.month, u1.year);
+            break;
+        }
+    }
+    fclose(fp);
+
+    printf("\n1. Check Balance\n2. Transfer Money\n3. Logout\n4. Exit\nEnter your choice: ");
+    scanf("%d", &choice);
+
+    switch (choice) {
+    case 1: checkbalance(username1); break;
+    case 2: transfermoney(); break;
+    case 3: logout(); login(); break;
+    case 4: exit(0);
+    default: display(username1);
+    }
+}
+
+// Check Balance using linked list
+void checkbalance(char username2[]) {
+    clear_screen();
+    struct TransactionNode* current = head;
+    int i = 1;
+    long total = 0;
+
+    printf("=== Transaction History for %s ===\n", username2);
+    printf("S.No\tFrom\t\tAmount\n");
+
+    while (current != NULL) {
+        if (strcmp(username2, current->data.usernameto) == 0) {
+            printf("%d\t%s\t\t%ld\n", i++, current->data.userpersonfrom, current->data.money1);
+            total += current->data.money1;
+        }
+        current = current->next;
+    }
+
+    printf("\nTotal Received: ₹%ld\n", total);
+    printf("Press any key to return...");
+    portable_getch();
     display(username2);
 }
 
-void logout(void)
-{
-    int i, j;
-    clear_screen();
-    printf("Please Wait, Logging Out");
-
-    for (i = 0; i < 10; i++)
-    {
-        for (j = 0; j < 25000000; j++)
-        {
-            i++;
-            i--;
-        }
-        printf(".");
-    }
-
-    printf("Sign out successfully..\n");
-    printf("Press any key to continue....");
-    portable_getch();
-}
-
-int isValidNumeric(char num[])
-{
-    len = 0;
-    for (int cnt = 0; cnt < 255; cnt++)
-    {
-        if (num[cnt] == '\0')
-            break;
-        len++;
-        if (isdigit(num[cnt]) == 0)
-        {
-            len = 0;
-            return 4;
-        }
-    }
-
-    if (len != 10)
-    {
-        printf("ERROR: Phone No. must be of 10 digits. \n");
-        main();
-    }
-    else
-        return 1;
-
-    return 0;
-}
-
-int isValidAdhar(char num[])
-{
-    len = 0;
-    for (int cnt = 0; cnt < 255; cnt++)
-    {
-        if (num[cnt] == '\0')
-            break;
-        len++;
-        if (isdigit(num[cnt]) == 0)
-        {
-            len = 0;
-            return 4;
-        }
-    }
-
-    if (len != 12)
-    {
-        printf("ERROR: Aadhar number must be of 12 digits. \n");
-        main();
-    }
-    else
-        return 1;
-
-    return 0;
-}
+// Transfer money and append to file + list
+void transfermoney(void) {
+    FILE* fm = fopen("mon.txt", "ab");
+    FILE* fp = fopen("username.txt", "rb");
+    struct pass
